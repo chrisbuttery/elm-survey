@@ -2,7 +2,9 @@
 
 Render your favourite languages to a pie chart using Elm and D3
 
-[ Try it out here ](http://chrisbuttery.github.io/elm-survey/)
+[ Demo ](http://chrisbuttery.github.io/elm-survey/)
+
+![alt tag](https://github.com/chrisbuttery/elm-survey/blob/master/Elm-Survey.gif)
 
 ## Installation
 
