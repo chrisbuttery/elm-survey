@@ -14,7 +14,7 @@
       <div class="js-elm"></div>
     </div>
     <script type="text/javascript">
-      // D3 related variables
+      // D3 variables
       var chartTarget = document.querySelector('.js-chart');
       var pie;
       var pieWidth = 300;
@@ -35,6 +35,7 @@
        * getModel
        * Return a model or null
        */
+
       function getModel () {
         return surveyModel ? JSON.parse(surveyModel) : null;
       }
@@ -60,6 +61,7 @@
       });
 
       initialModel = getModel();
+
       if (initialModel) {
         renderPieChart(chartTarget, initialModel.options);
       }
@@ -70,9 +72,9 @@
 
       /**
        * renderPieChart
-       * @param  {[type]} target [description]
-       * @param  {[type]} data   [description]
-       * @return {[type]}        [description]
+       * Append a D3 pie chart to to `target`
+       * @param  {Node} target
+       * @param  {Object} data
        */
 
       function renderPieChart (target, data) {
