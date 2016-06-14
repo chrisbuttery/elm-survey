@@ -1,0 +1,23 @@
+{
+  "name": "elm-survey",
+  "version": "1.0.0",
+  "description": "Render your favourite languages to a pie chart using Elm and D3",
+  "main": "index.js",
+  "scripts": {
+    "build": "elm-make Main.elm --output elm.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/chrisbuttery/elm-survey.git"
+  },
+  "author": "Chris Buttery <info@chrisbuttery.com> (http://www.chrisbuttery.com)",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/chrisbuttery/elm-survey/issues"
+  },
+  "homepage": "https://github.com/chrisbuttery/elm-survey#readme",
+  "devDependencies": {
+    "elm": "^0.17.0"
+  },
+  "private": true
+}

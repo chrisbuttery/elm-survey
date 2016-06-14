@@ -28,17 +28,16 @@
 
       // elm variables
       var elmTarget = document.querySelector('.js-elm');
-      var surveyModel = localStorage.getItem('survey-model');
-      var initialModel;
 
       /**
        * getModel
        * Return a model or null
        */
 
-      function getModel () {
-        return surveyModel ? JSON.parse(surveyModel) : null;
-      }
+       function getModel () {
+         var model = localStorage.getItem('survey-model');
+         return model ? JSON.parse(model) : null;
+       }
 
       /**
        * triggerInitialModelChange
@@ -47,27 +46,25 @@
        */
 
       function triggerInitialModelChange () {
-        elmApp.ports.newOptionTitle.send("");
+        app.ports.newOptionTitle.send("");
       }
 
-      var elmApp = Elm.embed(Elm.Main, elmTarget, {
-        getStoredModel: getModel(),
-        newOptionTitle: ""
-      });
+      var storageModel = getModel();
+      var app = Elm.Main.embed(elmTarget, storageModel);
 
-      elmApp.ports.modelChanges.subscribe(function(model) {
+      app.ports.modelChange.subscribe(function(model) {
         renderPieChart(chartTarget, model.options);
         localStorage.setItem('survey-model', JSON.stringify(model));
       });
 
-      initialModel = getModel();
-
-      if (initialModel) {
-        renderPieChart(chartTarget, initialModel.options);
+      // check for a model, otherwise trigger a new change
+      if (storageModel) {
+        renderPieChart(chartTarget, storageModel.options);
       }
       else {
-        triggerInitialModelChange();
-        renderPieChart(chartTarget, getModel());
+        setTimeout(function () {
+          app.ports.newOptionTitle.send("");
+        }, 250);
       }
 
       /**

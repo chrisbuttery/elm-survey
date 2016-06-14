@@ -1,68 +1,14 @@
-module Main where
+module Main exposing (..)
 
 import Html exposing (..)
-import Html.Attributes exposing (..)
 import Html.Events exposing (onClick, on, targetValue)
-import Signal exposing (Address)
+import Html.Attributes exposing (..)
+import Html.App as Html
 import String
+import Json.Decode as Json exposing (..)
 
-
--- MODEL
-
-{-- define a model type --}
-
-type alias Model =
-  { options : List Option
-  , newOptionTitle : String
-  , nextID : Int
-  }
-
-
-{-- define an option type --}
-
-type alias Option =
-  { title: String
-  , count: Int
-  , id: Int
-  }
-
-
-{--
-  newOption:
-  Take a string, int and int.
-  Return a structure based on the 'Option' type
---}
-
-newOption : String -> Int -> Int -> Option
-newOption title count id =
-  { title = title
-  , count = count
-  , id = id
-  }
-
-
-{--
-  initialModel:
-  Define a default model
-  Use 'emptyModel' if 'getStoredModel' isn't returning a model
-  from localStorage
---}
-
-initialModel : Model
-initialModel =
-  let
-    emptyModel =
-      { options =
-        [ newOption "Ruby" 1 1
-        , newOption "Rust" 3 2
-        , newOption "Python" 2 3
-        , newOption "Elm" 5 4
-        ]
-        , newOptionTitle = ""
-        , nextID = 5
-      }
-  in
-    Maybe.withDefault emptyModel getStoredModel
+import Model exposing (Model, Option, newOption)
+import Ports exposing (..)
 
 
 -- UPDATE
@@ -72,7 +18,7 @@ initialModel =
   An action could be one of the following listed.
 --}
 
-type Action =
+type Msg =
   NoOp
   | Increment Int
   | Decrement Int
@@ -90,65 +36,85 @@ type Action =
   'Remove' deletes an option from our options
 --}
 
-update : Action -> Model -> Model
-update action model =
-  case action of
+
+update : Msg -> Model -> ( Model, Cmd Msg )
+update msg model =
+  case msg of
     NoOp ->
-      model
+      (model, Cmd.none)
 
     Increment id ->
       let
         updateEntry e =
           if e.id == id then { e | count = e.count + 1 } else { e | count = e.count }
+
+        model' =
+          { model | options = List.map updateEntry model.options }
       in
-        { model | options = List.map updateEntry model.options }
+        ( model', Ports.modelChange model' )
 
     Decrement id ->
       let
         count num =
           if num > 0 then num - 1 else 0
+
         updateEntry e =
           if e.id == id then { e | count = (count e.count) } else { e | count = e.count }
+
+        model' =
+          { model | options = List.map updateEntry model.options }
       in
-        { model | options = List.map updateEntry model.options }
+        ( model', Ports.modelChange model' )
 
     UpdateTitleInput title ->
-      { model | newOptionTitle = title }
+      let
+        model' =
+          { model | newOptionTitle = title }
+      in
+        (model', Ports.modelChange model' )
 
     Add title ->
       let
         newTitle = Maybe.withDefault model.newOptionTitle title
+
         newlyAddedOption =
           newOption newTitle 0 model.nextID
 
         isInvalid model =
           String.isEmpty model.newOptionTitle
+
+        model' =
+          if isInvalid model
+          then model
+          else
+            { model |
+              options = newlyAddedOption :: model.options
+              , newOptionTitle = ""
+              , nextID = model.nextID + 1
+            }
       in
-        if isInvalid model
-        then model
-        else
-          { model |
-            options = newlyAddedOption :: model.options
-            , newOptionTitle = ""
-            , nextID = model.nextID + 1
-          }
+        ( model', Ports.modelChange model' )
 
     Remove id ->
       let
         remainingOptions = List.filter (\e -> e.id /= id) model.options
+
+        model' =
+          { model | options = remainingOptions }
       in
-        { model | options = remainingOptions }
+        (model', Ports.modelChange model' )
+
 
 -- VIEW
+
 
 {--
   onInput:
   Create a Signal that map to an Action (Add)
 --}
 
-onInput : Address a -> (String -> a) -> Attribute
-onInput address f =
-  on "input" targetValue (\v -> Signal.message address (f v))
+onInput =
+  on "input" (Json.map UpdateTitleInput targetValue)
 
 
 {--
@@ -158,21 +124,23 @@ onInput address f =
   require params
 --}
 
-view : Address Action -> Model -> Html
-view address model =
+
+view : Model -> Html Msg
+view model =
   div [] [
     div [] [
       title
-      , optionList address model.options
-      , optionForm address model.newOptionTitle
+      , optionList model.options
+      , optionForm model.newOptionTitle
     ]
   ]
+
 
 {--
   title returns static Html
 --}
 
-title : Html
+title : Html Msg
 title =
   h1 [ class "title" ] [ text "What languages do you use primarily, besides JavaScript?"]
 
@@ -184,10 +152,10 @@ title =
   Render to a UL
 --}
 
-optionList : Address Action -> List Option -> Html
-optionList address options =
+optionList : List Option -> Html Msg
+optionList options =
   let
-    optionItems = List.map (optionItem address) options
+    optionItems = List.map (optionItem) options
   in
     ul [ class "options" ] optionItems
 
@@ -199,15 +167,15 @@ optionList address options =
   Apply Signals for click events
 --}
 
-optionItem : Address Action -> Option -> Html
-optionItem address option =
+optionItem : Option -> Html Msg
+optionItem option =
   li [ class "option" ]
     [ div [ class "actions"] [
-        button [ class "button vote-down", onClick address (Decrement option.id) ] [ text "Down" ]
-        , button [ class "button vote-up", onClick address (Increment option.id) ] [ text "Up" ]
-        , button [ class "button remove", onClick address (Remove option.id) ] [ text "x" ]
+        button [ class "button vote-down", onClick (Decrement option.id) ] [ text "Down" ]
+        , button [ class "button vote-up", onClick (Increment option.id) ] [ text "Up" ]
+        , button [ class "button remove", onClick (Remove option.id) ] [ text "x" ]
       ]
-      , div [ class "option__title" ] [ 
+      , div [ class "option__title" ] [
         span [] [ text option.title ]
         , span [ class "count"] [ text ("Votes: " ++ toString option.count) ]
        ]
@@ -221,51 +189,56 @@ optionItem address option =
   Apply a Signals to 'Add'
 --}
 
-optionForm : Address Action -> String -> Html
-optionForm address title
+optionForm : String -> Html Msg
+optionForm title
  =
   div [ class "form" ] [
     input
       [ class "form__input"
       , type' "text"
       , placeholder "Other..."
-      , value title
+      , Html.Attributes.value title
       , name "title"
       , autofocus True
-      , onInput address UpdateTitleInput
+      , onInput
       ] []
-      , button [ class "button form__button add", onClick address (Add Nothing) ] [ text "Add" ]
+      , button [ class "button form__button add", onClick (Add Nothing) ] [ text "Add" ]
     ]
 
 
--- SIGNALS
-
-inbox : Signal.Mailbox Action
-inbox =
-  Signal.mailbox NoOp
+-- Main
 
 
-actions : Signal Action
-actions =
-  Signal.merge inbox.signal (Signal.map Add newOptionTitle)
+initialModel : Model
+initialModel =
+  { options =
+    [ newOption "Ruby" 1 1
+    , newOption "Rust" 3 2
+    , newOption "Python" 2 3
+    , newOption "Elm" 5 4
+    ]
+    , newOptionTitle = ""
+    , nextID = 5
+  }
 
 
-model : Signal Model
-model =
-  Signal.foldp update initialModel actions
+init : Maybe Model -> ( Model, Cmd Msg )
+init savedModel =
+  ( Maybe.withDefault initialModel savedModel, Cmd.none )
 
 
-main : Signal Html
 main =
-  Signal.map (view inbox.address) model
+  Html.programWithFlags
+    { init = init
+    , view = view
+    , update = update
+    , subscriptions = subscriptions
+    }
 
 
--- PORTS
+-- Subscriptions
 
-port modelChanges : Signal Model
-port modelChanges =
-  model
 
-port getStoredModel : Maybe Model
-
-port newOptionTitle : Signal (Maybe String)
+subscriptions : Model -> Sub Msg
+subscriptions model =
+  Ports.newOptionTitle UpdateTitleInput
