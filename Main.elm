@@ -113,6 +113,7 @@ update msg model =
   Create a Signal that map to an Action (Add)
 --}
 
+onInput : Attribute Msg
 onInput =
   on "input" (Json.map UpdateTitleInput targetValue)
 
